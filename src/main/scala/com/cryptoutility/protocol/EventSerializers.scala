@@ -45,7 +45,7 @@ object EventSerializer {
     out.writeUTF(user.lname)
     out.writeUTF(user.email)
     writeKey(out, user)
-    user.clientId.foreach(out.writeUTF)
+    out.writeUTF(user.clientId)
   }
 
   def deserializeUser(in: DataInputStream, isNew: Boolean) = {
@@ -53,7 +53,7 @@ object EventSerializer {
     val lname = in.readUTF()
     val email = in.readUTF()
     val pubKey = extractKey(in)
-    val clientId = if (isNew) Option.empty[String] else Some(in.readUTF())
+    val clientId = in.readUTF()
     UserInfo(fname, lname, email, pubKey, clientId)
   }
 
@@ -141,7 +141,7 @@ object UserCreatedSerializer extends EventSerializer[UserCreated]{
 abstract class StreamEventSerializer[E <: StreamEvent] extends EventSerializer[E]{
 
   def serialize(evt: E): Array[Byte] = write{ out =>
-    out.write(evt.chunck)
+    out.write(evt.chunk)
   }
 
   def deserialize(data: Array[Byte]): E = read(data){ in =>

@@ -1,6 +1,7 @@
 package com.cryptoutility.protocol
 
 import java.security.PublicKey
+import java.util.UUID
 
 import scala.language.postfixOps
 import scala.language.implicitConversions
@@ -27,21 +28,21 @@ object Events {
   }
 
 
-  case class UserInfo(fname: String, lname: String, email: String, key: PublicKey, clientId: Option[String] = None)
+  case class UserInfo(fname: String, lname: String, email: String, key: PublicKey, clientId: String = UUID.randomUUID().toString)
 
 
   case class Initialized(isNew: Boolean, user: UserInfo) extends Event
   case class UserCreated(user: UserInfo) extends Event
 
   sealed trait StreamEvent extends Event{
-    def chunck: Array[Byte]
+    def chunk: Array[Byte]
 
     def size: Int
   }
 
-  case class StreamStarted(chunck: Array[Byte] = Array(), size: Int = 0) extends StreamEvent
-  case class StreamPart(chunck: Array[Byte],  size: Int) extends StreamEvent
-  case class StreamEnded(chunck: Array[Byte] = Array(), size: Int = 0) extends StreamEvent
+  case class StreamStarted(chunk: Array[Byte] = Array(), size: Int = 0) extends StreamEvent
+  case class StreamPart(chunk: Array[Byte], size: Int) extends StreamEvent
+  case class StreamEnded(chunk: Array[Byte] = Array(), size: Int = 0) extends StreamEvent
 
 
 
