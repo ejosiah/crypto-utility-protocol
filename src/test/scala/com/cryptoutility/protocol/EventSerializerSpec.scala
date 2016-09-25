@@ -19,7 +19,7 @@ class EventSerializerSpec extends WordSpec with MustMatchers{
 
   "Initialised event serializer" should {
     "serialize and deserialize event" in {
-      val expected = Initialized(isNew = false, UserInfo("James", "Carl", "james@example.com", generateKey, Some(UUID.randomUUID().toString)))
+      val expected = Initialized(isNew = false, UserInfo("James", "Carl", "james@example.com", generateKey, UUID.randomUUID().toString))
       val serialized = EventSerializer.serialize(expected)
       val deserialized = EventSerializer.deserialize(serialized)
 
