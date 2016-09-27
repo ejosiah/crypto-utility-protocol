@@ -31,7 +31,7 @@ object EventSerializer {
 
   def readInt(data: Array[Byte]): Int = {
     if(data.length < 4) throw new IllegalArgumentException(s"Not enough byte, 4 bytes required")
-    (data(0) << 24) + ( data(1) << 16) + (data(2) << 8) + (data(3) << 0)
+    ((data(0) & 0xFF) << 24) + ((data(1) & 0xFF) << 16) + ((data(2) & 0xFF) << 8) + ((data(3) & 0xFF) << 0)
   }
 
   def writeKey(out: DataOutputStream, user: UserInfo) = {
