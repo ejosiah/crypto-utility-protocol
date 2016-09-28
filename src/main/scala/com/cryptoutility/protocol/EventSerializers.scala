@@ -68,6 +68,9 @@ object EventSerializer {
     val body = event match{
       case e: Initialized => InitializedSerializer.serialize(e)
       case e: UserCreated => UserCreatedSerializer.serialize(e)
+      case e: StreamStarted => StreamStaredSerializer.serialize(e)
+      case e: StreamPart => StreamPartSerializer.serialize(e)
+      case e: StreamEnded => StreamEndedSerializer.serialize(e)
     }
     val header = new ArrayBuffer[Byte](HeaderSize)
     header ++= toBytes(HeaderSize + body.length)
@@ -81,8 +84,11 @@ object EventSerializer {
     val eventId = readInt(buf.slice(IntSize, HeaderSize).toArray)
     val body = buf.slice(HeaderSize, buf.size).toArray
     (eventId, body) match {
-      case (0, b) => InitializedSerializer.deserialize(b)
-      case(1, b) => UserCreatedSerializer.deserialize(b)
+      case (InitializedId, b) => InitializedSerializer.deserialize(b)
+      case (UserCreatedId, b) => UserCreatedSerializer.deserialize(b)
+      case (StreamStartedId, b) => StreamStaredSerializer.deserialize(b)
+      case (StreamPartId, b) => StreamPartSerializer.deserialize(b)
+      case (StreamEndedId, b) => StreamEndedSerializer.deserialize(b)
       case _ => throw InvalidFormatException()
     }
   }
@@ -138,31 +144,49 @@ object UserCreatedSerializer extends EventSerializer[UserCreated]{
   def deserialize(data: Array[Byte]): UserCreated = read(data)(in => UserCreated(deserializeUser(in, isNew = false)))
 }
 
-abstract class StreamEventSerializer[E <: StreamEvent] extends EventSerializer[E]{
+object StreamPartSerializer extends EventSerializer[StreamPart]{
 
-  def serialize(evt: E): Array[Byte] = write{ out =>
+  def serialize(evt: StreamPart): Array[Byte] = write{ out =>
+    out.writeLong(evt.seqId)
     out.write(evt.chunk)
   }
 
-  def deserialize(data: Array[Byte]): E = read(data){ in =>
-    val size = in.readInt()
+  def deserialize(data: Array[Byte]): StreamPart = read(data){ in =>
+    val seqId = in.readLong()
+    val size = in.available()
     val buf = new Array[Byte](size)
     in.readFully(buf)
-    construct(size, buf)
+    new StreamPart(seqId, buf)
   }
 
-  def construct(size: Int, buf: Array[Byte]): E
-
 }
 
-object StreamStaredSerializer extends StreamEventSerializer[StreamStarted]{
-  override def construct(size: Int, buf: Array[Byte]): StreamStarted = new StreamStarted()
+object StreamStaredSerializer extends EventSerializer[StreamStarted]{
+  override def serialize(event: StreamStarted): Array[Byte] = write{ out =>
+    out.writeUTF(event.secret)
+    out.writeUTF(event.filename)
+    out.writeUTF(event.contentType)
+    out.writeUTF(event.from)
+  }
+
+  override def deserialize(data: Array[Byte]): StreamStarted = read(data){ in =>
+    val secret = in.readUTF()
+    val filename = in.readUTF()
+    val contentType = in.readUTF()
+    val from = in.readUTF()
+    new StreamStarted(filename, contentType, from, secret)
+  }
 }
 
-object StreamPartSerializer extends StreamEventSerializer[StreamPart] {
-  override def construct(size: Int, buf: Array[Byte]): StreamPart = new StreamPart(buf, size)
-}
 
-object StreamEndedSerializer extends StreamEventSerializer[StreamEnded]{
-  override def construct(size: Int, buf: Array[Byte]): StreamEnded = new StreamEnded()
+
+object StreamEndedSerializer extends EventSerializer[StreamEnded]{
+  override def serialize(evt: StreamEnded): Array[Byte] = write{ out =>
+    out.writeLong(evt.size)
+  }
+
+  override def deserialize(data: Array[Byte]): StreamEnded = read(data){ in =>
+    val size = in.readLong()
+    new StreamEnded(size)
+  }
 }

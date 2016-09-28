@@ -24,7 +24,8 @@ object Events {
   val StreamEndedId = 4
 
 
-  sealed trait Event{
+  sealed trait Event extends Ordered[Event]{
+    override def compare(that: Event): Int = id(this).compareTo(id(this))
   }
 
 
@@ -34,15 +35,19 @@ object Events {
   case class Initialized(isNew: Boolean, user: UserInfo) extends Event
   case class UserCreated(user: UserInfo) extends Event
 
-  sealed trait StreamEvent extends Event{
-    def chunk: Array[Byte]
 
-    def size: Int
+  case class StreamStarted(filename: String, contentType: String, from: String, secret: String) extends Event
+
+  case class StreamPart(seqId: Long, chunk: Array[Byte]) extends Event{
+    override def compare(that: Event): Int = {
+      val i = super.compare(that)
+      if(i == 0 && that.isInstanceOf[StreamPart]){
+        seqId.compare(that.asInstanceOf[StreamPart].seqId)
+      }else i
+    }
   }
 
-  case class StreamStarted(chunk: Array[Byte] = Array(), size: Int = 0) extends StreamEvent
-  case class StreamPart(chunk: Array[Byte], size: Int) extends StreamEvent
-  case class StreamEnded(chunk: Array[Byte] = Array(), size: Int = 0) extends StreamEvent
+  case class StreamEnded(size: Long) extends Event
 
 
 
