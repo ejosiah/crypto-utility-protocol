@@ -35,10 +35,11 @@ object Events {
   case class Initialized(isNew: Boolean, user: UserInfo) extends Event
   case class UserCreated(user: UserInfo) extends Event
 
+  sealed trait StreamEvent extends Event
 
-  case class StreamStarted(filename: String, contentType: String, from: String, secret: String) extends Event
+  case class StreamStarted(filename: String, contentType: String, from: String, secret: String) extends StreamEvent
 
-  case class StreamPart(seqId: Long, chunk: Array[Byte]) extends Event{
+  case class StreamPart(seqId: Long, chunk: Array[Byte]) extends StreamEvent{
     override def compare(that: Event): Int = {
       val i = super.compare(that)
       if(i == 0 && that.isInstanceOf[StreamPart]){
@@ -47,7 +48,7 @@ object Events {
     }
   }
 
-  case class StreamEnded(size: Long) extends Event
+  case class StreamEnded(size: Long, checksum: String) extends StreamEvent
 
 
 

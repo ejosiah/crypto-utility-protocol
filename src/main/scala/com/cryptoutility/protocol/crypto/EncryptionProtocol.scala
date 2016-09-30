@@ -5,6 +5,8 @@ import java.security.{PrivateKey, PublicKey, Key}
 import java.util.Base64
 import javax.crypto.Cipher
 
+import _root_.akka.util.ByteString
+
 object Encrypt {
 
   def file(algorithm: String)(file: File, key: Key): Array[Byte] = {
@@ -29,10 +31,10 @@ object Encrypt {
     encode(cipher.wrap(key))
   }
 
-  def apply[T](algorithm: String, transform: Array[Byte] => T)(text: String, key: Key): T = {
+  def apply[T](algorithm: String, transform: Array[Byte] => T)(data: Array[Byte], key: Key): T = {
     val cipher = Cipher.getInstance(algorithm)
     cipher.init(Cipher.ENCRYPT_MODE, key)
-    transform(cipher.doFinal(text.getBytes()))
+    transform(cipher.doFinal(data))
   }
 
 }
@@ -96,3 +98,6 @@ object Base64Decode {
   def apply(text: String): Array[Byte] = apply(text.getBytes())
 }
 
+object Hex{
+  def apply(data: Array[Byte]): String = data.map{ b => Integer.toHexString(0xFF & b)}.mkString
+}
