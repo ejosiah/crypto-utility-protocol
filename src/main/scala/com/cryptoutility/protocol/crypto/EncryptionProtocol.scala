@@ -1,11 +1,9 @@
 package com.cryptoutility.protocol.crypto
 
-import java.io.{FileInputStream, File}
-import java.security.{PrivateKey, PublicKey, Key}
+import java.io.{ByteArrayInputStream, InputStream, FileInputStream, File}
+import java.security.{MessageDigest, PrivateKey, PublicKey, Key}
 import java.util.Base64
 import javax.crypto.Cipher
-
-import _root_.akka.util.ByteString
 
 object Encrypt {
 
@@ -100,4 +98,39 @@ object Base64Decode {
 
 object Hex{
   def apply(data: Array[Byte]): String = data.map{ b => Integer.toHexString(0xFF & b)}.mkString
+}
+
+abstract class Checksum{
+
+  val EOF = -1
+
+  def algorithm: String
+
+  def apply(in: InputStream): String = {
+    val digest = MessageDigest.getInstance(algorithm)
+    val buf = new Array[Byte](256)
+    val read = in.read(buf)
+    while(read != EOF){
+      digest.update(buf, 0, read)
+    }
+    Hex(digest.digest())
+  }
+
+  def apply(data: Array[Byte]) = apply(new ByteArrayInputStream(data))
+
+  def apply(text: String) = apply(text.getBytes())
+
+  def apply[T](t: T)(implicit transform: T => Array[Byte]) = apply(transform(t))
+}
+
+object MD5 extends Checksum{
+  def algorithm: String = "MD5"
+}
+
+object MD2 extends Checksum{
+  def algorithm: String = "MD2"
+}
+
+object SHA1 extends Checksum{
+  def algorithm: String = "SHA1"
 }
