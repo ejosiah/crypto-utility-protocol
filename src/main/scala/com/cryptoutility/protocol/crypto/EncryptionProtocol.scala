@@ -109,18 +109,19 @@ abstract class Checksum{
   def apply(in: InputStream): String = {
     val digest = MessageDigest.getInstance(algorithm)
     val buf = new Array[Byte](256)
-    val read = in.read(buf)
+    var read = in.read(buf)
     while(read != EOF){
       digest.update(buf, 0, read)
+      read = in.read(buf)
     }
     Hex(digest.digest())
   }
 
-  def apply(data: Array[Byte]) = apply(new ByteArrayInputStream(data))
+  def apply(data: Array[Byte]): String = apply(new ByteArrayInputStream(data))
 
-  def apply(text: String) = apply(text.getBytes())
+  def apply(text: String): String = apply(text.getBytes())
 
-  def apply[T](t: T)(implicit transform: T => Array[Byte]) = apply(transform(t))
+  def apply[T](t: T)(implicit transform: T => Array[Byte]): String = apply(transform(t))
 }
 
 object MD5 extends Checksum{
