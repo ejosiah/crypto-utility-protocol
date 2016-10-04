@@ -1,6 +1,6 @@
 package com.cryptoutility.protocol
 
-import java.io.{ByteArrayInputStream, DataInputStream, ByteArrayOutputStream, DataOutputStream}
+import java.io._
 import java.math.BigInteger
 import java.security.{KeyFactory, PublicKey}
 import java.security.spec.RSAPublicKeySpec
@@ -71,6 +71,7 @@ object EventSerializer {
       case e: StreamStarted => StreamStaredSerializer.serialize(e)
       case e: StreamPart => StreamPartSerializer.serialize(e)
       case e: StreamEnded => StreamEndedSerializer.serialize(e)
+      case e: StreamingResult => StreamingResultSerializer.serialize(e)
     }
     val header = new ArrayBuffer[Byte](HeaderSize)
     header ++= toBytes(HeaderSize + body.length)
@@ -89,6 +90,7 @@ object EventSerializer {
       case (StreamStartedId, b) => StreamStaredSerializer.deserialize(b)
       case (StreamPartId, b) => StreamPartSerializer.deserialize(b)
       case (StreamEndedId, b) => StreamEndedSerializer.deserialize(b)
+      case (StreamingResultId, b) => StreamingResultSerializer.deserialize(b)
       case _ => throw InvalidFormatException()
     }
   }
@@ -190,5 +192,27 @@ object StreamEndedSerializer extends EventSerializer[StreamEnded]{
     val size = in.readLong()
     val checksum = in.readUTF()
     new StreamEnded(size, checksum)
+  }
+}
+
+object StreamingResultSerializer extends EventSerializer[StreamingResult]{
+
+  override def serialize(evt: StreamingResult): Array[Byte] = write{ out =>
+    out.writeLong(evt.count)
+    evt.status match {
+      case Success(_) => out.writeInt(0)
+      case Failure(NonFatal(e)) =>
+        out.writeInt(1)
+        new ObjectOutputStream(out).writeObject(e)
+    }
+  }
+
+  override def deserialize(data: Array[Byte]): StreamingResult = read(data){ in =>
+    val count = in.readLong()
+    val status = in.readInt() match {
+      case 0 => Success[Done](Done)
+      case 1 => Failure[Done](new ObjectInputStream(in).readObject().asInstanceOf[Exception])
+    }
+    StreamingResult(count, status)
   }
 }
