@@ -55,7 +55,7 @@ object Events {
     }
   }
 
-  case class StreamEnded(size: Long, checksum: String) extends StreamEvent
+  case class StreamEnded(size: Long, secret: String, mac: String) extends StreamEvent
 
   case class StreamingResult(count: Long, status: Try[Done]) extends StreamEvent{
 

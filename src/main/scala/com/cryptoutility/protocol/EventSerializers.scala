@@ -185,13 +185,15 @@ object StreamStaredSerializer extends EventSerializer[StreamStarted]{
 object StreamEndedSerializer extends EventSerializer[StreamEnded]{
   override def serialize(evt: StreamEnded): Array[Byte] = write{ out =>
     out.writeLong(evt.size)
-    out.writeUTF(evt.checksum)
+    out.writeUTF(evt.secret)
+    out.writeUTF(evt.mac)
   }
 
   override def deserialize(data: Array[Byte]): StreamEnded = read(data){ in =>
     val size = in.readLong()
-    val checksum = in.readUTF()
-    new StreamEnded(size, checksum)
+    val secret = in.readUTF()
+    val mac = in.readUTF()
+    new StreamEnded(size, secret, mac)
   }
 }
 

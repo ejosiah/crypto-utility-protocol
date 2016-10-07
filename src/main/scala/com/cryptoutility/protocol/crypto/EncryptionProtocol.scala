@@ -37,6 +37,24 @@ object Encrypt {
 
 }
 
+object Mac{
+  import javax.crypto.{Mac => JMac}
+
+  val EOF = -1
+
+  def apply(algorithm: String)(key: Key, in: InputStream): String = {
+    val mac = JMac.getInstance(algorithm)
+    mac.init(key)
+    val buf = new Array[Byte](256)
+    var read = in.read(buf)
+    while(read != EOF){
+      mac.update(buf, 0, read)
+      read = in.read(buf)
+    }
+    Hex(mac.doFinal())
+  }
+}
+
 object Decrypt {
 
   def apply(raw: Array[Byte], algorithm: String, key: Key) = {
